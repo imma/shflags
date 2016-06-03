@@ -626,7 +626,6 @@ function _flags_strlen {
   flags_return=$?
 
   unset _flags_str_
-  echo ${flags_output}
   return ${flags_return}
 }
 
@@ -745,7 +744,7 @@ function flags_help {
       flags_defaultStr_="(default: ${flags_defaultStr_})"
 
       flags_helpStr_="  ${flags_flagStr_}  ${flags_help_} ${flags_defaultStr_}"
-      _flags_strlen "${flags_helpStr_}" >/dev/null
+      _flags_strlen "${flags_helpStr_}"
       flags_helpStrLen_=${flags_output}
 
       echo "${flags_helpStr_}" >&2

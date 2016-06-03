@@ -698,14 +698,10 @@ function flags_help {
       flags_boolStr_=''
       flags_usName_="${flags_name_//-/_}"
 
-      flags_default_="$(_flags_getFlagInfo \
-        "${flags_usName_}" ${__FLAGS_INFO_DEFAULT})"
-      flags_help_="$(_flags_getFlagInfo \
-        "${flags_usName_}" ${__FLAGS_INFO_HELP})"
-      flags_short_="$(_flags_getFlagInfo \
-        "${flags_usName_}" ${__FLAGS_INFO_SHORT})"
-      flags_type_="$(_flags_getFlagInfo \
-        "${flags_usName_}" ${__FLAGS_INFO_TYPE})"
+      flags_default_="$(_flags_getFlagInfo "${flags_usName_}" ${__FLAGS_INFO_DEFAULT})"
+      flags_help_="$(_flags_getFlagInfo "${flags_usName_}" ${__FLAGS_INFO_HELP})"
+      flags_short_="$(_flags_getFlagInfo "${flags_usName_}" ${__FLAGS_INFO_SHORT})"
+      flags_type_="$(_flags_getFlagInfo "${flags_usName_}" ${__FLAGS_INFO_TYPE})"
 
       [ "${flags_short_}" != "${__FLAGS_NULL}" ] && \
           flags_flagStr_="-${flags_short_}"

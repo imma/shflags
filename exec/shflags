@@ -86,12 +86,7 @@ FLAGS_TRUE=0
 FLAGS_FALSE=1
 FLAGS_ERROR=2
 
-# determine some reasonable command defaults
-__FLAGS_UNAME_S=`uname -s`
-case "${__FLAGS_UNAME_S}" in
-  BSD) __FLAGS_EXPR_CMD='gexpr' ;;
-  *) __FLAGS_EXPR_CMD='expr' ;;
-esac
+__FLAGS_EXPR_CMD='expr'
 
 # commands a user can override if needed
 FLAGS_EXPR_CMD=${FLAGS_EXPR_CMD:-${__FLAGS_EXPR_CMD}}
@@ -114,23 +109,9 @@ __FLAGS_RESERVED_LIST=' ARGC ARGV ERROR FALSE GETOPT_CMD HELP PARENT TRUE '
 __FLAGS_RESERVED_LIST="${__FLAGS_RESERVED_LIST} VERSION "
 
 # getopt version
-__FLAGS_GETOPT_VERS_STD=0
 __FLAGS_GETOPT_VERS_ENH=1
-__FLAGS_GETOPT_VERS_BSD=2
 
-${FLAGS_GETOPT_CMD} >/dev/null 2>&1
-case $? in
-  0) __FLAGS_GETOPT_VERS=${__FLAGS_GETOPT_VERS_STD} ;;  # bsd getopt
-  2)
-    # TODO(kward): look into '-T' option to test the internal getopt() version
-    if [ "`${FLAGS_GETOPT_CMD} --version`" = '-- ' ]; then
-      __FLAGS_GETOPT_VERS=${__FLAGS_GETOPT_VERS_STD}
-    else
-      __FLAGS_GETOPT_VERS=${__FLAGS_GETOPT_VERS_ENH}
-    fi
-    ;;
-  *) _flags_fatal 'unable to determine getopt version' ;;
-esac
+__FLAGS_GETOPT_VERS=${__FLAGS_GETOPT_VERS_ENH}
 
 # getopt optstring lengths
 __FLAGS_OPTSTR_SHORT=0
@@ -230,15 +211,6 @@ function _flags_define {
   _flags_itemInList ${_flags_usName_} "${__FLAGS_RESERVED_LIST}"
   if [ $? -eq ${FLAGS_TRUE} ]; then
     flags_error="flag name (${_flags_name_}) is reserved"
-    _flags_return_=${FLAGS_ERROR}
-  fi
-
-  # require short option for getopt that don't support long options
-  if [ ${_flags_return_} -eq ${FLAGS_TRUE} \
-      -a ${__FLAGS_GETOPT_VERS} -ne ${__FLAGS_GETOPT_VERS_ENH} \
-      -a "${_flags_short_}" = "${__FLAGS_NULL}" ]
-  then
-    flags_error="short flag required for (${_flags_name_}) on this platform"
     _flags_return_=${FLAGS_ERROR}
   fi
 
@@ -576,44 +548,6 @@ function _flags_validInt {
   return ${flags_return}
 }
 
-# Parse command-line options using the standard getopt.
-#
-# Note: the flag options are passed around in the global __flags_opts so that
-# the formatting is not lost due to shell parsing and such.
-#
-# Args:
-#   @: varies: command-line options to parse
-# Returns:
-#   integer: a FLAGS success condition
-function _flags_getoptStandard {
-  flags_return=${FLAGS_TRUE}
-  _flags_shortOpts_=`_flags_genOptStr ${__FLAGS_OPTSTR_SHORT}`
-
-  # check for spaces in passed options
-  for _flags_opt_ in "$@"; do
-    # note: the silliness with the x's is purely for ksh93 on Ubuntu 6.06
-    _flags_match_=`echo "x${_flags_opt_}x" |sed 's/ //g'`
-    if [ "${_flags_match_}" != "x${_flags_opt_}x" ]; then
-      flags_error='the available getopt does not support spaces in options'
-      flags_return=${FLAGS_ERROR}
-      break
-    fi
-  done
-
-  if [ ${flags_return} -eq ${FLAGS_TRUE} ]; then
-    __flags_opts=`getopt ${_flags_shortOpts_} $@ 2>&1`
-    _flags_rtrn_=$?
-    if [ ${_flags_rtrn_} -ne ${FLAGS_TRUE} ]; then
-      _flags_warn "${__flags_opts}"
-      flags_error='unable to parse provided options with getopt.'
-      flags_return=${FLAGS_ERROR}
-    fi
-  fi
-
-  unset _flags_match_ _flags_opt_ _flags_rtrn_ _flags_shortOpts_
-  return ${flags_return}
-}
-
 # Parse command-line options using the enhanced getopt.
 #
 # Note: the flag options are passed around in the global __flags_opts so that
@@ -662,12 +596,8 @@ function _flags_parseGetopt {
 
   flags_return=${FLAGS_TRUE}
 
-  if [ ${__FLAGS_GETOPT_VERS} -ne ${__FLAGS_GETOPT_VERS_ENH} ]; then
-    set -- $@
-  else
-    # note the quotes around the `$@' -- they are essential!
-    eval set -- "$@"
-  fi
+  # note the quotes around the `$@' -- they are essential!
+  eval set -- "$@"
 
   # Provide user with the number of arguments to shift by later.
   # NOTE: the FLAGS_ARGC variable is obsolete as of 1.0.3 because it does not
@@ -909,11 +839,7 @@ function FLAGS {
 
   # parse options
   if [ $# -gt 0 ]; then
-    if [ ${__FLAGS_GETOPT_VERS} -ne ${__FLAGS_GETOPT_VERS_ENH} ]; then
-      _flags_getoptStandard "$@"
-    else
-      _flags_getoptEnhanced "$@"
-    fi
+    _flags_getoptEnhanced "$@"
     flags_return=$?
   else
     # nothing passed; won't bother running getopt
@@ -928,28 +854,6 @@ function FLAGS {
 
   [ ${flags_return} -eq ${FLAGS_ERROR} ] && _flags_fatal "${flags_error}"
   return ${flags_return}
-}
-
-# Returns whether the detected getopt version is the enhanced version.
-#
-# Args:
-#   none
-# Output:
-#   none
-# Returns:
-#   bool: true if getopt is the enhanced version
-function flags_getoptIsEnh {
-  test ${__FLAGS_GETOPT_VERS} -eq ${__FLAGS_GETOPT_VERS_ENH}
-}
-
-# Returns whether the detected getopt version is the standard version.
-#
-# Args:
-#   none
-# Returns:
-#   bool: true if getopt is the standard version
-function flags_getoptIsStd {
-  test ${__FLAGS_GETOPT_VERS} -eq ${__FLAGS_GETOPT_VERS_STD}
 }
 
 # This is effectively a 'usage()' function. It prints usage information and
@@ -986,15 +890,13 @@ function flags_help {
       [ "${flags_short_}" != "${__FLAGS_NULL}" ] && \
           flags_flagStr_="-${flags_short_}"
 
-      if [ ${__FLAGS_GETOPT_VERS} -eq ${__FLAGS_GETOPT_VERS_ENH} ]; then
-        [ "${flags_short_}" != "${__FLAGS_NULL}" ] && \
-            flags_flagStr_="${flags_flagStr_},"
-        # add [no] to long boolean flag names, except the 'help' flag
-        [ ${flags_type_} -eq ${__FLAGS_TYPE_BOOLEAN} \
-          -a "${flags_usName_}" != 'help' ] && \
-            flags_boolStr_='[no]'
-        flags_flagStr_="${flags_flagStr_}--${flags_boolStr_}${flags_name_}:"
-      fi
+      [ "${flags_short_}" != "${__FLAGS_NULL}" ] && \
+          flags_flagStr_="${flags_flagStr_},"
+      # add [no] to long boolean flag names, except the 'help' flag
+      [ ${flags_type_} -eq ${__FLAGS_TYPE_BOOLEAN} \
+        -a "${flags_usName_}" != 'help' ] && \
+          flags_boolStr_='[no]'
+      flags_flagStr_="${flags_flagStr_}--${flags_boolStr_}${flags_name_}:"
 
       case ${flags_type_} in
         ${__FLAGS_TYPE_BOOLEAN})
@@ -1027,15 +929,9 @@ function flags_help {
         _flags_strlen "${flags_helpStr_}" >/dev/null
         flags_helpStrLen_=${flags_output}
 
-        if [ ${__FLAGS_GETOPT_VERS} -eq ${__FLAGS_GETOPT_VERS_STD} \
-            -o ${flags_helpStrLen_} -lt ${flags_columns_} ]; then
-          # indented to match help string
-          echo "${flags_helpStr_}" >&2
-        else
-          # indented four from left to allow for longer defaults as long flag
-          # names might be used too, making things too long
-          echo "    ${flags_defaultStr_}" >&2
-        fi
+        # indented four from left to allow for longer defaults as long flag
+        # names might be used too, making things too long
+        echo "    ${flags_defaultStr_}" >&2
       fi
     done
   fi

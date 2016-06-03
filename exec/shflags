@@ -191,7 +191,7 @@ function _flags_define {
   _flags_short_=${5:-${__FLAGS_NULL}}
 
   _flags_return_=${FLAGS_TRUE}
-  _flags_usName_=`_flags_underscoreName ${_flags_name_}`
+  _flags_usName_="$(_flags_underscoreName ${_flags_name_})"
 
   # check whether the flag name is reserved
   _flags_itemInList ${_flags_usName_} "${__FLAGS_RESERVED_LIST}"
@@ -299,7 +299,7 @@ function _flags_define {
 # Output:
 #   string: underscored name
 function _flags_underscoreName {
-  echo $1 |tr '-' '_'
+  echo "${1//-/_}"
 }
 
 # Return valid getopt options using currently defined list of long options.
@@ -319,13 +319,13 @@ function _flags_genOptStr {
   _flags_opts_=''
 
   for _flags_name_ in ${__flags_longNames}; do
-    _flags_usName_=`_flags_underscoreName ${_flags_name_}`
-    _flags_type_=`_flags_getFlagInfo ${_flags_usName_} ${__FLAGS_INFO_TYPE}`
+    _flags_usName_="$(_flags_underscoreName ${_flags_name_})"
+    _flags_type_="$(_flags_getFlagInfo ${_flags_usName_} ${__FLAGS_INFO_TYPE})"
     [ $? -eq ${FLAGS_TRUE} ] || _flags_fatal 'call to _flags_type_ failed'
     case ${_flags_optStrType_} in
       ${__FLAGS_OPTSTR_SHORT})
-        _flags_shortName_=`_flags_getFlagInfo \
-            ${_flags_usName_} ${__FLAGS_INFO_SHORT}`
+        _flags_shortName_="$(_flags_getFlagInfo \
+          ${_flags_usName_} ${__FLAGS_INFO_SHORT})"
         if [ "${_flags_shortName_}" != "${__FLAGS_NULL}" ]; then
           _flags_opts_="${_flags_opts_}${_flags_shortName_}"
           # getopt needs a trailing ':' to indicate a required argument
@@ -466,12 +466,12 @@ function _flags_validFloat {
     flags_return=${FLAGS_TRUE}
     case ${_flags_float_} in
       -*)  # negative floats
-        _flags_test_=`${FLAGS_EXPR_CMD} -- "${_flags_float_}" :\
-            '\(-[0-9]*\.[0-9]*\)'`
+        _flags_test_="$(${FLAGS_EXPR_CMD} -- "${_flags_float_}" :\
+          '\(-[0-9]*\.[0-9]*\)')"
         ;;
       *)  # positive floats
-        _flags_test_=`${FLAGS_EXPR_CMD} -- "${_flags_float_}" :\
-            '\([0-9]*\.[0-9]*\)'`
+        _flags_test_="$(${FLAGS_EXPR_CMD} -- "${_flags_float_}" :\
+          '\([0-9]*\.[0-9]*\)')"
         ;;
     esac
     [ "${_flags_test_}" != "${_flags_float_}" ] && flags_return=${FLAGS_FALSE}
@@ -499,7 +499,7 @@ function _flags_validInt {
       if _flags_useBuiltin; then
         _flags_int_=${_flags_int_#-}
       else
-        _flags_int_=`${FLAGS_EXPR_CMD} -- "${_flags_int_}" : '-\([0-9][0-9]*\)'`
+        _flags_int_="$(${FLAGS_EXPR_CMD} -- "${_flags_int_}" : '-\([0-9][0-9]*\)')"
       fi
       ;;
   esac
@@ -524,15 +524,15 @@ function _flags_validInt {
 #   integer: a FLAGS success condition
 function _flags_getoptEnhanced {
   flags_return=${FLAGS_TRUE}
-  _flags_shortOpts_=`_flags_genOptStr ${__FLAGS_OPTSTR_SHORT}`
-  _flags_boolOpts_=`echo "${__flags_boolNames}" \
-      |sed 's/^ *//;s/ *$//;s/ /,/g'`
-  _flags_longOpts_=`_flags_genOptStr ${__FLAGS_OPTSTR_LONG}`
+  _flags_shortOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_SHORT})"
+  _flags_boolOpts_="$(echo "${__flags_boolNames}" \
+    |sed 's/^ *//;s/ *$//;s/ /,/g')"
+  _flags_longOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_LONG})"
 
-  __flags_opts=`${FLAGS_GETOPT_CMD} \
+  __flags_opts="$(${FLAGS_GETOPT_CMD} \
       -o ${_flags_shortOpts_} \
       -l "${_flags_longOpts_},${_flags_boolOpts_}" \
-      -- "$@" 2>&1`
+      -- "$@" 2>&1)"
   _flags_rtrn_=$?
   if [ ${_flags_rtrn_} -ne ${FLAGS_TRUE} ]; then
     _flags_warn "${__flags_opts}"
@@ -561,7 +561,7 @@ function _flags_parseGetopt {
 
   flags_return=${FLAGS_TRUE}
 
-  # note the quotes around the `$@' -- they are essential!
+  # note the quotes around the $@ -- they are essential!
   eval set -- "$@"
 
   # Provide user with the number of arguments to shift by later.
@@ -569,7 +569,7 @@ function _flags_parseGetopt {
   # properly give user access to non-flag arguments mixed in between flag
   # arguments. Its usage was replaced by FLAGS_ARGV, and it is being kept only
   # for backwards compatibility reasons.
-  FLAGS_ARGC=`_flags_math "$# - 1 - ${_flags_argc_}"`
+  FLAGS_ARGC="$(_flags_math "$# - 1 - ${_flags_argc_}")"
 
   # handle options. note options with values must do an additional shift
   while true; do
@@ -586,7 +586,7 @@ function _flags_parseGetopt {
         if _flags_useBuiltin; then
           _flags_opt_=${_flags_opt_#*--}
         else
-          _flags_opt_=`${FLAGS_EXPR_CMD} -- "${_flags_opt_}" : '--\(.*\)'`
+          _flags_opt_="$(${FLAGS_EXPR_CMD} -- "${_flags_opt_}" : '--\(.*\)')"
         fi
         _flags_len_=${__FLAGS_LEN_LONG}
         if _flags_itemInList "${_flags_opt_}" ${__flags_longNames}; then
@@ -597,7 +597,7 @@ function _flags_parseGetopt {
             if _flags_useBuiltin; then
               _flags_name_=${_flags_opt_#*no}
             else
-              _flags_name_=`${FLAGS_EXPR_CMD} -- "${_flags_opt_}" : 'no\(.*\)'`
+              _flags_name_="$(${FLAGS_EXPR_CMD} -- "${_flags_opt_}" : 'no\(.*\)')"
             fi
             _flags_type_=${__FLAGS_TYPE_BOOLEAN}
             _flags_arg_=${__FLAGS_NULL}
@@ -609,17 +609,16 @@ function _flags_parseGetopt {
         if _flags_useBuiltin; then
           _flags_opt_=${_flags_opt_#*-}
         else
-          _flags_opt_=`${FLAGS_EXPR_CMD} -- "${_flags_opt_}" : '-\(.*\)'`
+          _flags_opt_="$(${FLAGS_EXPR_CMD} -- "${_flags_opt_}" : '-\(.*\)')"
         fi
         _flags_len_=${__FLAGS_LEN_SHORT}
         if _flags_itemInList "${_flags_opt_}" ${__flags_shortNames}; then
           # yes. match short name to long name. note purposeful off-by-one
           # (too high) with awk calculations.
-          _flags_pos_=`echo "${__flags_shortNames}" \
-              |awk 'BEGIN{RS=" ";rn=0}$0==e{rn=NR}END{print rn}' \
-                  e=${_flags_opt_}`
-          _flags_name_=`echo "${__flags_longNames}" \
-              |awk 'BEGIN{RS=" "}rn==NR{print $0}' rn="${_flags_pos_}"`
+          _flags_pos_="$(echo "${__flags_shortNames}" \
+            |awk 'BEGIN{RS=" ";rn=0}$0==e{rn=NR}END{print rn}' e=${_flags_opt_})"
+          _flags_name_="$(echo "${__flags_longNames}" \
+            |awk 'BEGIN{RS=" "}rn==NR{print $0}' rn="${_flags_pos_}")"
         fi
         ;;
     esac
@@ -632,10 +631,10 @@ function _flags_parseGetopt {
     fi
 
     # set new flag value
-    _flags_usName_=`_flags_underscoreName ${_flags_name_}`
+    _flags_usName_="$(_flags_underscoreName ${_flags_name_})"
     [ ${_flags_type_} -eq ${__FLAGS_TYPE_NONE} ] && \
-        _flags_type_=`_flags_getFlagInfo \
-            "${_flags_usName_}" ${__FLAGS_INFO_TYPE}`
+        _flags_type_="$(_flags_getFlagInfo \
+        "${_flags_usName_}" ${__FLAGS_INFO_TYPE})"
     case ${_flags_type_} in
       ${__FLAGS_TYPE_BOOLEAN})
         if [ ${_flags_len_} -eq ${__FLAGS_LEN_LONG} ]; then
@@ -750,7 +749,7 @@ function _flags_strlen {
   elif _flags_useBuiltin; then
     flags_output=${#_flags_str_}
   else
-    flags_output=`${FLAGS_EXPR_CMD} -- "${_flags_str_}" : '.*'`
+    flags_output="$(${FLAGS_EXPR_CMD} -- "${_flags_str_}" : '.*')"
   fi
   flags_return=$?
 
@@ -841,16 +840,16 @@ function flags_help {
     for flags_name_ in ${__flags_longNames}; do
       flags_flagStr_=''
       flags_boolStr_=''
-      flags_usName_=`_flags_underscoreName ${flags_name_}`
+      flags_usName_="$(_flags_underscoreName ${flags_name_})"
 
-      flags_default_=`_flags_getFlagInfo \
-          "${flags_usName_}" ${__FLAGS_INFO_DEFAULT}`
-      flags_help_=`_flags_getFlagInfo \
-          "${flags_usName_}" ${__FLAGS_INFO_HELP}`
-      flags_short_=`_flags_getFlagInfo \
-          "${flags_usName_}" ${__FLAGS_INFO_SHORT}`
-      flags_type_=`_flags_getFlagInfo \
-          "${flags_usName_}" ${__FLAGS_INFO_TYPE}`
+      flags_default_="$(_flags_getFlagInfo \
+        "${flags_usName_}" ${__FLAGS_INFO_DEFAULT})"
+      flags_help_="$(_flags_getFlagInfo \
+        "${flags_usName_}" ${__FLAGS_INFO_HELP})"
+      flags_short_="$(_flags_getFlagInfo \
+        "${flags_usName_}" ${__FLAGS_INFO_SHORT})"
+      flags_type_="$(_flags_getFlagInfo \
+        "${flags_usName_}" ${__FLAGS_INFO_TYPE})"
 
       [ "${flags_short_}" != "${__FLAGS_NULL}" ] && \
           flags_flagStr_="-${flags_short_}"
@@ -899,7 +898,7 @@ function flags_help {
 #   nothing
 function flags_reset {
   for flags_name_ in ${__flags_longNames}; do
-    flags_usName_=`_flags_underscoreName ${flags_name_}`
+    flags_usName_="$(_flags_underscoreName ${flags_name_})"
     flags_strToEval_="unset FLAGS_${flags_usName_}"
     for flags_type_ in \
         ${__FLAGS_INFO_DEFAULT} \

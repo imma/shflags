@@ -87,7 +87,6 @@ FLAGS_FALSE=1
 FLAGS_ERROR=2
 
 # commands a user can override if needed
-FLAGS_EXPR_CMD=${FLAGS_EXPR_CMD:-expr}
 FLAGS_GETOPT_CMD=${FLAGS_GETOPT_CMD:-getopt}
 
 #

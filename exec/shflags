@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # vim:et:ft=sh:sts=2:sw=2
 #
 # Copyright 2008-2016 Kate Ward. All Rights Reserved.
@@ -22,22 +23,17 @@
 #   flags, passing the flag on the command-line negates the default value, i.e.
 #   if the default is true, passing the flag sets the value to false.
 #
-# DEFINE_float: takes an input and intreprets it as a floating point number. As
-#   shell does not support floats per-se, the input is merely validated as
-#   being a valid floating point value.
-#
 # DEFINE_integer: takes an input and intreprets it as an integer.
 #
 # SPECIAL FLAGS: There are a few flags that have special meaning:
 #   --help (or -?)  prints a list of all the flags in a human-readable fashion
-#   --flagfile=foo  read flags from foo.  (not implemented yet)
 #   --              as in getopt(), terminates flag-processing
 #
 # EXAMPLE USAGE:
 #
 #   -- begin hello.sh --
-#   #! /bin/sh
-#   . ./shflags
+#   #! /usr/bin/env bash
+#   source shflags
 #   DEFINE_string name 'world' "somebody's name" n
 #   FLAGS "$@" || exit $?
 #   eval set -- "${FLAGS_ARGV}"
@@ -100,18 +96,6 @@ esac
 # commands a user can override if needed
 FLAGS_EXPR_CMD=${FLAGS_EXPR_CMD:-${__FLAGS_EXPR_CMD}}
 FLAGS_GETOPT_CMD=${FLAGS_GETOPT_CMD:-getopt}
-
-# specific shell checks
-if [ -n "${ZSH_VERSION:-}" ]; then
-  setopt |grep "^shwordsplit$" >/dev/null
-  if [ $? -ne ${FLAGS_TRUE} ]; then
-    _flags_fatal 'zsh shwordsplit option is required for proper zsh operation'
-  fi
-  if [ -z "${FLAGS_PARENT:-}" ]; then
-    _flags_fatal "zsh does not pass \$0 through properly. please declare' \
-\"FLAGS_PARENT=\$0\" before calling shFlags"
-  fi
-fi
 
 # can we use built-ins?
 ( echo "${FLAGS_TRUE#0}"; ) >/dev/null 2>&1
@@ -180,14 +164,7 @@ for __flags_const in ${__flags_constants}; do
     FLAGS_PARENT) continue ;;
   esac
   # set flag readonly
-  if [ -z "${ZSH_VERSION:-}" ]; then
-    readonly ${__flags_const}
-  else  # handle zsh
-    case ${ZSH_VERSION} in
-      [123].*) readonly ${__flags_const} ;;
-      *) readonly -g ${__flags_const} ;;  # declare readonly constants globally
-    esac
-  fi
+  readonly ${__flags_const}
 done
 unset __flags_const __flags_constants
 
@@ -209,10 +186,10 @@ __flags_opts=''  # temporary storage for parsed getopt flags
 #
 
 # logging functions
-_flags_debug() { echo "flags:DEBUG $@" >&2; }
-_flags_warn() { echo "flags:WARN $@" >&2; }
-_flags_error() { echo "flags:ERROR $@" >&2; }
-_flags_fatal() { echo "flags:FATAL $@" >&2; exit ${FLAGS_ERROR}; }
+function _flags_debug { echo "flags:DEBUG $@" >&2; }
+function _flags_warn { echo "flags:WARN $@" >&2; }
+function _flags_error { echo "flags:ERROR $@" >&2; }
+function _flags_fatal { echo "flags:FATAL $@" >&2; exit ${FLAGS_ERROR}; }
 
 # Define a flag.
 #
@@ -232,8 +209,7 @@ _flags_fatal() { echo "flags:FATAL $@" >&2; exit ${FLAGS_ERROR}; }
 #   _flags__short: string: (optional) short flag name
 # Returns:
 #   integer: success of operation, or error
-_flags_define()
-{
+function _flags_define {
   if [ $# -lt 4 ]; then
     flags_error='DEFINE error: too few arguments'
     flags_return=${FLAGS_ERROR}
@@ -364,8 +340,7 @@ _flags_define()
 #   unnamed: string: log flag name
 # Output:
 #   string: underscored name
-_flags_underscoreName()
-{
+function _flags_underscoreName {
   echo $1 |tr '-' '_'
 }
 
@@ -380,8 +355,7 @@ _flags_underscoreName()
 #   string: generated option string for getopt
 # Returns:
 #   boolean: success of operation (always returns True)
-_flags_genOptStr()
-{
+function _flags_genOptStr {
   _flags_optStrType_=$1
 
   _flags_opts_=''
@@ -426,8 +400,7 @@ _flags_genOptStr()
 #   string: value of dereferenced flag variable
 # Returns:
 #   integer: one of FLAGS_{TRUE|FALSE|ERROR}
-_flags_getFlagInfo()
-{
+function _flags_getFlagInfo {
   # note: adding gFI to variable names to prevent naming conflicts with calling
   # functions
   _flags_gFI_usName_=$1
@@ -475,7 +448,7 @@ _flags_getFlagInfo()
 #   unnamed: list: list of strings
 # Returns:
 #   boolean: true if item is in the list
-_flags_itemInList() {
+function _flags_itemInList {
   _flags_str_=$1
   shift
 
@@ -494,8 +467,7 @@ _flags_itemInList() {
 #
 # Output:
 #   integer: width in columns of the current screen.
-_flags_columns()
-{
+function _flags_columns {
   if [ -z "${__flags_columns}" ]; then
     # determine the value and store it
     if eval stty size >/dev/null 2>&1; then
@@ -518,8 +490,7 @@ _flags_columns()
 #   _flags__bool: boolean: value to validate
 # Returns:
 #   bool: true if the value is a valid boolean
-_flags_validBool()
-{
+function _flags_validBool {
   _flags_bool_=$1
 
   flags_return=${FLAGS_TRUE}
@@ -539,8 +510,7 @@ _flags_validBool()
 #   _flags_float_: float: value to validate
 # Returns:
 #   bool: true if the value is a valid integer
-_flags_validFloat()
-{
+function _flags_validFloat {
   flags_return=${FLAGS_FALSE}
   [ -n "$1" ] || return ${flags_return}
   _flags_float_=$1
@@ -581,8 +551,7 @@ _flags_validFloat()
 #   _flags_int_: integer: value to validate
 # Returns:
 #   bool: true if the value is a valid integer
-_flags_validInt()
-{
+function _flags_validInt {
   flags_return=${FLAGS_FALSE}
   [ -n "$1" ] || return ${flags_return}
   _flags_int_=$1
@@ -616,8 +585,7 @@ _flags_validInt()
 #   @: varies: command-line options to parse
 # Returns:
 #   integer: a FLAGS success condition
-_flags_getoptStandard()
-{
+function _flags_getoptStandard {
   flags_return=${FLAGS_TRUE}
   _flags_shortOpts_=`_flags_genOptStr ${__FLAGS_OPTSTR_SHORT}`
 
@@ -655,8 +623,7 @@ _flags_getoptStandard()
 #   @: varies: command-line options to parse
 # Returns:
 #   integer: a FLAGS success condition
-_flags_getoptEnhanced()
-{
+function _flags_getoptEnhanced {
   flags_return=${FLAGS_TRUE}
   _flags_shortOpts_=`_flags_genOptStr ${__FLAGS_OPTSTR_SHORT}`
   _flags_boolOpts_=`echo "${__flags_boolNames}" \
@@ -689,8 +656,7 @@ _flags_getoptEnhanced()
 #   @: varies: output from getopt parsing
 # Returns:
 #   integer: a FLAGS success condition
-_flags_parseGetopt()
-{
+function _flags_parseGetopt {
   _flags_argc_=$1
   shift
 
@@ -855,8 +821,7 @@ _flags_parseGetopt()
 #   integer: the result
 # Returns:
 #   bool: success of math evaluation
-_flags_math()
-{
+function _flags_math {
   if [ $# -eq 0 ]; then
     flags_return=${FLAGS_FALSE}
   elif _flags_useBuiltin; then
@@ -882,8 +847,7 @@ _flags_math()
 #   integer: length of string
 # Returns:
 #   bool: success of strlen evaluation
-_flags_strlen()
-{
+function _flags_strlen {
   _flags_str_=${1:-}
 
   if [ -z "${_flags_str_}" ]; then
@@ -906,8 +870,7 @@ _flags_strlen()
 #   None
 # Returns:
 #   bool: true if built-ins should be used
-_flags_useBuiltin()
-{
+function _flags_useBuiltin {
   return ${__FLAGS_USE_BUILTIN}
 }
 
@@ -927,12 +890,11 @@ _flags_useBuiltin()
 # and whose short name was 'x', and the default value was 'false'. This flag
 # could be explicitly set to 'true' with '--update' or by '-x', and it could be
 # explicitly set to 'false' with '--noupdate'.
-DEFINE_boolean() { _flags_define ${__FLAGS_TYPE_BOOLEAN} "$@"; }
+function DEFINE_boolean { _flags_define ${__FLAGS_TYPE_BOOLEAN} "$@"; }
 
 # Other basic flags.
-DEFINE_float()   { _flags_define ${__FLAGS_TYPE_FLOAT} "$@"; }
-DEFINE_integer() { _flags_define ${__FLAGS_TYPE_INTEGER} "$@"; }
-DEFINE_string()  { _flags_define ${__FLAGS_TYPE_STRING} "$@"; }
+function DEFINE_integer { _flags_define ${__FLAGS_TYPE_INTEGER} "$@"; }
+function DEFINE_string  { _flags_define ${__FLAGS_TYPE_STRING} "$@"; }
 
 # Parse the flags.
 #
@@ -940,8 +902,7 @@ DEFINE_string()  { _flags_define ${__FLAGS_TYPE_STRING} "$@"; }
 #   unnamed: list: command-line flags to parse
 # Returns:
 #   integer: success of operation, or error
-FLAGS()
-{
+function FLAGS {
   # define a standard 'help' flag if one isn't already defined
   [ -z "${__flags_help_type:-}" ] && \
       DEFINE_boolean 'help' false 'show this help' 'h'
@@ -969,40 +930,6 @@ FLAGS()
   return ${flags_return}
 }
 
-# This is a helper function for determining the 'getopt' version for platforms
-# where the detection isn't working. It simply outputs debug information that
-# can be included in a bug report.
-#
-# Args:
-#   none
-# Output:
-#   debug info that can be included in a bug report
-# Returns:
-#   nothing
-flags_getoptInfo()
-{
-  # platform info
-  _flags_debug "uname -a: `uname -a`"
-  _flags_debug "PATH: ${PATH}"
-
-  # shell info
-  if [ -n "${BASH_VERSION:-}" ]; then
-    _flags_debug 'shell: bash'
-    _flags_debug "BASH_VERSION: ${BASH_VERSION}"
-  elif [ -n "${ZSH_VERSION:-}" ]; then
-    _flags_debug 'shell: zsh'
-    _flags_debug "ZSH_VERSION: ${ZSH_VERSION}"
-  fi
-
-  # getopt info
-  ${FLAGS_GETOPT_CMD} >/dev/null
-  _flags_getoptReturn=$?
-  _flags_debug "getopt return: ${_flags_getoptReturn}"
-  _flags_debug "getopt --version: `${FLAGS_GETOPT_CMD} --version 2>&1`"
-
-  unset _flags_getoptReturn
-}
-
 # Returns whether the detected getopt version is the enhanced version.
 #
 # Args:
@@ -1011,8 +938,7 @@ flags_getoptInfo()
 #   none
 # Returns:
 #   bool: true if getopt is the enhanced version
-flags_getoptIsEnh()
-{
+function flags_getoptIsEnh {
   test ${__FLAGS_GETOPT_VERS} -eq ${__FLAGS_GETOPT_VERS_ENH}
 }
 
@@ -1022,8 +948,7 @@ flags_getoptIsEnh()
 #   none
 # Returns:
 #   bool: true if getopt is the standard version
-flags_getoptIsStd()
-{
+function flags_getoptIsStd {
   test ${__FLAGS_GETOPT_VERS} -eq ${__FLAGS_GETOPT_VERS_STD}
 }
 
@@ -1036,8 +961,7 @@ flags_getoptIsStd()
 #   none
 # Returns:
 #   integer: success of operation (always returns true)
-flags_help()
-{
+function flags_help {
   if [ -n "${FLAGS_HELP:-}" ]; then
     echo "${FLAGS_HELP}" >&2
   else
@@ -1128,8 +1052,7 @@ flags_help()
 #   none
 # Returns:
 #   nothing
-flags_reset()
-{
+function flags_reset {
   for flags_name_ in ${__flags_longNames}; do
     flags_usName_=`_flags_underscoreName ${flags_name_}`
     flags_strToEval_="unset FLAGS_${flags_usName_}"

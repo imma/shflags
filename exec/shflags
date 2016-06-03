@@ -124,7 +124,6 @@ __FLAGS_LEN_LONG=1
 # flag types
 __FLAGS_TYPE_NONE=0
 __FLAGS_TYPE_BOOLEAN=1
-__FLAGS_TYPE_FLOAT=2
 __FLAGS_TYPE_INTEGER=3
 __FLAGS_TYPE_STRING=4
 
@@ -223,15 +222,6 @@ function _flags_define {
             true|t|0) _flags_default_=${FLAGS_TRUE} ;;
             false|f|1) _flags_default_=${FLAGS_FALSE} ;;
           esac
-        else
-          flags_error="invalid default flag value '${_flags_default_}'"
-          _flags_return_=${FLAGS_ERROR}
-        fi
-        ;;
-
-      ${__FLAGS_TYPE_FLOAT})
-        if _flags_validFloat "${_flags_default_}"; then
-          :
         else
           flags_error="invalid default flag value '${_flags_default_}'"
           _flags_return_=${FLAGS_ERROR}
@@ -422,33 +412,6 @@ function _flags_validBool {
   return ${flags_return}
 }
 
-# Validate a float.
-#
-# Args:
-#   _flags_float_: float: value to validate
-# Returns:
-#   bool: true if the value is a valid integer
-function _flags_validFloat {
-  flags_return=${FLAGS_FALSE}
-  [ -n "$1" ] || return ${flags_return}
-  _flags_float_=$1
-
-  if _flags_validInt ${_flags_float_}; then
-    flags_return=${FLAGS_TRUE}
-  else
-    _flags_float_whole_=${_flags_float_%.*}
-    _flags_float_fraction_=${_flags_float_#*.}
-    if _flags_validInt ${_flags_float_whole_:-0} -a \
-      _flags_validInt ${_flags_float_fraction_}; then
-      flags_return=${FLAGS_TRUE}
-    fi
-    unset _flags_float_whole_ _flags_float_fraction_
-  fi
-
-  unset _flags_float_ _flags_float_whole_ _flags_float_fraction_
-  return ${flags_return}
-}
-
 # Validate an integer.
 #
 # Args:
@@ -461,8 +424,6 @@ function _flags_validInt {
   _flags_int_=$1
 
   case ${_flags_int_} in
-    -*.*) # ignore negative floats (we'll invalidate them later)
-      ;;
     -*)  # strip possible leading negative sign
       _flags_int_=${_flags_int_#-}
       ;;
@@ -602,16 +563,6 @@ function _flags_parseGetopt {
           else
             eval "FLAGS_${_flags_usName_}=${FLAGS_FALSE}"
           fi
-        fi
-        ;;
-
-      ${__FLAGS_TYPE_FLOAT})
-        if _flags_validFloat "${_flags_arg_}"; then
-          eval "FLAGS_${_flags_usName_}='${_flags_arg_}'"
-        else
-          flags_error="invalid float value (${_flags_arg_})"
-          flags_return=${FLAGS_ERROR}
-          break
         fi
         ;;
 
@@ -806,7 +757,7 @@ function flags_help {
             flags_defaultStr_='false'
           fi
           ;;
-        ${__FLAGS_TYPE_FLOAT}|${__FLAGS_TYPE_INTEGER})
+        ${__FLAGS_TYPE_INTEGER})
           flags_defaultStr_=${flags_default_} ;;
         ${__FLAGS_TYPE_STRING}) flags_defaultStr_="'${flags_default_}'" ;;
       esac

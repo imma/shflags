@@ -485,7 +485,7 @@ function _flags_parseGetopt {
   # properly give user access to non-flag arguments mixed in between flag
   # arguments. Its usage was replaced by FLAGS_ARGV, and it is being kept only
   # for backwards compatibility reasons.
-  FLAGS_ARGC="$(_flags_math "$# - 1 - ${_flags_argc_}")"
+  FLAGS_ARGC="$(( $# - 1 - ${_flags_argc_} ))"
 
   # handle options. note options with values must do an additional shift
   while true; do
@@ -597,25 +597,6 @@ function _flags_parseGetopt {
 
   unset _flags_arg_ _flags_len_ _flags_name_ _flags_opt_ _flags_pos_ \
       _flags_strToEval_ _flags_type_ _flags_usName_ _flags_val_
-  return ${flags_return}
-}
-
-# Perform some path using built-ins.
-#
-# Args:
-#   $@: string: math expression to evaluate
-# Output:
-#   integer: the result
-# Returns:
-#   bool: success of math evaluation
-function _flags_math {
-  if [ $# -eq 0 ]; then
-    flags_return=${FLAGS_FALSE}
-  else
-    echo $(( $@ ))
-    flags_return=$?
-  fi
-
   return ${flags_return}
 }
 

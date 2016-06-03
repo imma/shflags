@@ -572,16 +572,6 @@ function _flags_parseGetopt {
         ;;
     esac
 
-    # handle special case help flag
-    if [ "${_flags_usName_}" = 'help' ]; then
-      if [ ${FLAGS_help} -eq ${FLAGS_TRUE} ]; then
-        flags_help
-        flags_error='help requested'
-        flags_return=${FLAGS_TRUE}
-        break
-      fi
-    fi
-
     # shift the option and non-boolean arguements out.
     shift
     if [[ ${_flags_type_} != ${__FLAGS_TYPE_BOOLEAN} ]]; then
@@ -657,11 +647,6 @@ function DEFINE_string  { _flags_define ${__FLAGS_TYPE_STRING} "$@"; }
 #   integer: success of operation, or error
 function FLAGS {
   set -efu
-
-  # define a standard 'help' flag if one isn't already defined
-  if [[ -z "${__flags_help_type:-}" ]]; then
-    DEFINE_boolean 'help' false 'show this help' 'h'
-  fi
 
   # parse options
   if [ $# -gt 0 ]; then

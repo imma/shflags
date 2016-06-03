@@ -136,19 +136,6 @@ __FLAGS_TYPE_FLOAT=2
 __FLAGS_TYPE_INTEGER=3
 __FLAGS_TYPE_STRING=4
 
-# set the constants readonly
-__flags_constants=`set |awk -F= '/^FLAGS_/ || /^__FLAGS_/ {print $1}'`
-for __flags_const in ${__flags_constants}; do
-  # skip certain flags
-  case ${__flags_const} in
-    FLAGS_HELP) continue ;;
-    FLAGS_PARENT) continue ;;
-  esac
-  # set flag readonly
-  readonly ${__flags_const}
-done
-unset __flags_const __flags_constants
-
 #
 # internal variables
 #
@@ -159,7 +146,6 @@ __flags_longNames=' '  # long flag names
 __flags_shortNames=' '  # short flag names
 __flags_definedNames=' ' # defined flag names (used for validation)
 
-__flags_columns=''  # screen width in columns
 __flags_opts=''  # temporary storage for parsed getopt flags
 
 #------------------------------------------------------------------------------
@@ -433,27 +419,6 @@ function _flags_itemInList {
 
   unset _flags_str_
   return ${flags_return}
-}
-
-# Returns the width of the current screen.
-#
-# Output:
-#   integer: width in columns of the current screen.
-function _flags_columns {
-  if [ -z "${__flags_columns}" ]; then
-    # determine the value and store it
-    if eval stty size >/dev/null 2>&1; then
-      # stty size worked :-)
-      set -- `stty size`
-      __flags_columns=$2
-    elif eval tput cols >/dev/null 2>&1; then
-      set -- `tput cols`
-      __flags_columns=$1
-    else
-      __flags_columns=80  # default terminal width
-    fi
-  fi
-  echo ${__flags_columns}
 }
 
 # Validate a boolean.
@@ -915,30 +880,14 @@ function flags_help {
       flags_helpStr_="  ${flags_flagStr_}  ${flags_help_} ${flags_defaultStr_}"
       _flags_strlen "${flags_helpStr_}" >/dev/null
       flags_helpStrLen_=${flags_output}
-      flags_columns_=`_flags_columns`
 
-      if [ ${flags_helpStrLen_} -lt ${flags_columns_} ]; then
-        echo "${flags_helpStr_}" >&2
-      else
-        echo "  ${flags_flagStr_}  ${flags_help_}" >&2
-        # note: the silliness with the x's is purely for ksh93 on Ubuntu 6.06
-        # because it doesn't like empty strings when used in this manner.
-        flags_emptyStr_="`echo \"x${flags_flagStr_}x\" \
-            |awk '{printf "%"length($0)-2"s", ""}'`"
-        flags_helpStr_="  ${flags_emptyStr_}  ${flags_defaultStr_}"
-        _flags_strlen "${flags_helpStr_}" >/dev/null
-        flags_helpStrLen_=${flags_output}
-
-        # indented four from left to allow for longer defaults as long flag
-        # names might be used too, making things too long
-        echo "    ${flags_defaultStr_}" >&2
-      fi
+      echo "${flags_helpStr_}" >&2
     done
   fi
 
   unset flags_boolStr_ flags_default_ flags_defaultStr_ flags_emptyStr_ \
       flags_flagStr_ flags_help_ flags_helpStr flags_helpStrLen flags_name_ \
-      flags_columns_ flags_short_ flags_type_ flags_usName_
+      flags_short_ flags_type_ flags_usName_
   return ${FLAGS_TRUE}
 }
 

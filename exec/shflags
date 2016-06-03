@@ -86,10 +86,8 @@ FLAGS_TRUE=0
 FLAGS_FALSE=1
 FLAGS_ERROR=2
 
-__FLAGS_EXPR_CMD='expr'
-
 # commands a user can override if needed
-FLAGS_EXPR_CMD=${FLAGS_EXPR_CMD:-${__FLAGS_EXPR_CMD}}
+FLAGS_EXPR_CMD=${FLAGS_EXPR_CMD:-expr}
 FLAGS_GETOPT_CMD=${FLAGS_GETOPT_CMD:-getopt}
 
 #
@@ -99,11 +97,6 @@ FLAGS_GETOPT_CMD=${FLAGS_GETOPT_CMD:-getopt}
 # reserved flag names
 __FLAGS_RESERVED_LIST=' ARGC ARGV ERROR FALSE GETOPT_CMD HELP PARENT TRUE '
 __FLAGS_RESERVED_LIST="${__FLAGS_RESERVED_LIST} VERSION "
-
-# getopt version
-__FLAGS_GETOPT_VERS_ENH=1
-
-__FLAGS_GETOPT_VERS=${__FLAGS_GETOPT_VERS_ENH}
 
 # getopt optstring lengths
 __FLAGS_OPTSTR_SHORT=0
@@ -145,7 +138,7 @@ __flags_opts=''  # temporary storage for parsed getopt flags
 
 # logging functions
 function _flags_debug { echo "flags:DEBUG $@" >&2; }
-function _flags_warn { echo "flags:WARN $@" >&2; }
+function _flags_warn  { echo "flags:WARN  $@" >&2; }
 function _flags_error { echo "flags:ERROR $@" >&2; }
 function _flags_fatal { echo "flags:FATAL $@" >&2; exit ${FLAGS_ERROR}; }
 
@@ -620,12 +613,8 @@ function _flags_math {
   if [ $# -eq 0 ]; then
     flags_return=${FLAGS_FALSE}
   else
-    # Variable assignment is needed as workaround for Solaris Bourne shell,
-    # which cannot parse a bare $((expression)).
-    _flags_expr_='$(($@))'
-    eval echo ${_flags_expr_}
+    echo $(( $@ ))
     flags_return=$?
-    unset _flags_expr_
   fi
 
   return ${flags_return}

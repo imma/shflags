@@ -36,7 +36,7 @@
 #   source shflags
 #   DEFINE_string name 'world' "somebody's name" n
 #   FLAGS "$@" || exit $?
-#   eval set -- "${FLAGS_ARGV}"
+#   set -- "${FLAGS_ARGV[@]}"
 #   echo "Hello, ${FLAGS_name}."
 #   -- end hello.sh --
 #
@@ -195,7 +195,7 @@ function _flags_define {
   fi
 
   # check for existing short name definition
-  if [ ${_flags_return_} -eq ${FLAGS_TRUE} && "${_flags_short_}" != "${__FLAGS_NULL}" ]
+  if [[ ${_flags_return_} -eq ${FLAGS_TRUE} && "${_flags_short_}" != "${__FLAGS_NULL}" ]]
   then
     if _flags_itemInList "${_flags_short_}" ${__flags_shortNames}; then
       flags_error="flag short name (${_flags_short_}) already defined"
@@ -451,7 +451,7 @@ function _flags_getoptEnhanced {
   _flags_boolOpts_="$(echo "${__flags_boolNames}" | sed 's/^ *//;s/ *$//;s/ /,/g')"
   _flags_longOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_LONG})"
 
-  __flags_opts="$(${FLAGS_GETOPT_CMD} 
+  __flags_opts="$(${FLAGS_GETOPT_CMD} \
       -o ${_flags_shortOpts_} \
       -l "${_flags_longOpts_},${_flags_boolOpts_}" \
       -- "$@" 2>&1)"
@@ -485,13 +485,6 @@ function _flags_parseGetopt {
 
   # note the quotes around the $@ -- they are essential!
   eval set -- "$@"
-
-  # Provide user with the number of arguments to shift by later.
-  # NOTE: the FLAGS_ARGC variable is obsolete as of 1.0.3 because it does not
-  # properly give user access to non-flag arguments mixed in between flag
-  # arguments. Its usage was replaced by FLAGS_ARGV, and it is being kept only
-  # for backwards compatibility reasons.
-  FLAGS_ARGC="$(( $# - 1 - ${_flags_argc_} ))"
 
   # handle options. note options with values must do an additional shift
   while true; do
@@ -597,9 +590,13 @@ function _flags_parseGetopt {
   done
 
   # give user back non-flag arguments
-  FLAGS_ARGV=''
-  while [ $# -gt 0 ]; do
-    FLAGS_ARGV="${FLAGS_ARGV:+${FLAGS_ARGV} }'$1'"
+  if [[ $# -gt 0 ]]; then
+    FLAGS_ARGV=("$1")
+    shift
+  fi
+
+  while [[ $# -gt 0 ]]; do
+    FLAGS_ARGV=("${FLAGS_ARGV[@]}" "$1")
     shift
   done
 

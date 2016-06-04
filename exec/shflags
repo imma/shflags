@@ -289,7 +289,9 @@ function _flags_genOptStr {
   for _flags_name_ in ${__flags_longNames}; do
     _flags_usName_="${_flags_name_//-/_}"
     _flags_type_="$(_flags_getFlagInfo ${_flags_usName_} ${__FLAGS_INFO_TYPE})"
-    [ $? -eq ${FLAGS_TRUE} ] || _flags_fatal 'call to _flags_type_ failed'
+    if [[ $? -ne ${FLAGS_TRUE} ]]; then
+      _flags_fatal 'call to _flags_type_ failed'
+    fi
     case ${_flags_optStrType_} in
       ${__FLAGS_OPTSTR_SHORT})
         _flags_shortName_="$(_flags_getFlagInfo ${_flags_usName_} ${__FLAGS_INFO_SHORT})"
@@ -416,7 +418,9 @@ function _flags_validBool {
 #   bool: true if the value is a valid integer
 function _flags_validInt {
   flags_return=${FLAGS_FALSE}
-  [ -n "$1" ] || return ${flags_return}
+  if [ -z "${1:-}" ]; then
+    return ${flags_return}
+  fi
   _flags_int_=$1
 
   case ${_flags_int_} in
@@ -446,7 +450,10 @@ function _flags_validInt {
 function _flags_getoptEnhanced {
   flags_return=${FLAGS_TRUE}
   _flags_shortOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_SHORT})"
-  _flags_boolOpts_="$(echo "${__flags_boolNames}" | sed 's/^ *//;s/ *$//;s/ /,/g')"
+  _flags_boolOpts_="$__flags_boolNames# *}"
+  _flags_boolOpts_="${__flags_boolNames#"${__flags_boolNames%%[![:space:]]*}"}"
+  _flags_boolOpts_="${_flags_boolOpts_%"${_flags_boolOpts_##*[![:space:]]}"}"
+  _flags_boolOpts_="${_flags_boolOpts// /,}"
   _flags_longOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_LONG})"
 
   __flags_opts="$(${FLAGS_GETOPT_CMD} \

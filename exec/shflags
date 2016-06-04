@@ -441,15 +441,16 @@ function _flags_validInt {
 function _flags_getoptEnhanced {
   g__last_flags_return=${FLAGS_TRUE}
   local _flags_shortOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_SHORT})"
-  local _flags_boolOpts_="$g__flags_bool_names# *}"
+  local _flags_longOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_LONG})"
+  local _flags_boolOpts_
   _flags_boolOpts_="${g__flags_bool_names#"${g__flags_bool_names%%[![:space:]]*}"}"
   _flags_boolOpts_="${_flags_boolOpts_%"${_flags_boolOpts_##*[![:space:]]}"}"
-  _flags_boolOpts_="${_flags_boolOpts// /,}"
-  local _flags_longOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_LONG})"
+  _flags_boolOpts_="${_flags_boolOpts_# }"
+  _flags_boolOpts_="${_flags_boolOpts_// /,}"
 
   g__flags_opts="$(${FLAGS_GETOPT_CMD} \
-      -o ${_flags_shortOpts_} \
-      -l "${_flags_longOpts_},${_flags_boolOpts_}" \
+      -o "${_flags_shortOpts_}" \
+      -l "${_flags_longOpts_}${_flags_boolOpts_:+,${_flags_boolOpts_:+}}" \
       -- "$@" 2>&1)"
   local _flags_rtrn_=$?
   if [ ${_flags_rtrn_} -ne ${FLAGS_TRUE} ]; then
@@ -638,9 +639,16 @@ function FLAGS {
 
   if [[ ${g__last_flags_return} -eq ${FLAGS_ERROR} ]]; then
     _flags_fatal "${g__last_flags_error}"
+    return ${g__last_flags_return}
   fi
 
-  return ${g__last_flags_return}
+  if [[ "${#FLAGS_ARGV[@]}" -gt 0 ]]; then
+    eval set -- "${FLAGS_ARGV[@]}"
+  else
+    set --
+  fi
+
+  main "$@"
 }
 
 # This is effectively a 'usage()' function. It prints usage information and

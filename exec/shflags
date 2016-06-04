@@ -47,11 +47,6 @@
 #
 # A script can override the default 'getopt' command by providing the path to
 # an alternate implementation by defining the FLAGS_GETOPT_CMD variable.
-#
-# NOTES:
-#
-# * Not all systems include a getopt version that supports long flags. On these
-#   systems, only short flags are recognized.
 
 #==============================================================================
 # shFlags

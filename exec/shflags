@@ -637,7 +637,7 @@ function FLAGS {
   fi
 
   if [[ ${g__last_flags_return} -eq ${FLAGS_ERROR} ]]; then
-    _flags_fatal "${flags_error}"
+    _flags_fatal "${last_flags_error}"
   fi
 
   return ${g__last_flags_return}

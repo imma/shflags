@@ -57,9 +57,8 @@
 # shFlags
 #
 # Shared attributes:
-#   flags_error:  last error message
-#   flags_output: last function output (rarely valid)
-#   flags_return: last return value
+#   last_flags_error:  last error message
+#   last_flags_return: last return value
 #
 #   g__flags_bool_names:  list of boolean flag names
 #   g__flags_long_names:  list of long names for all flags
@@ -163,10 +162,10 @@ function _flags_fatal { echo "flags:FATAL $@" >&2; exit ${FLAGS_ERROR}; }
 #   integer: success of operation, or error
 function _flags_define {
   if [ $# -lt 4 ]; then
-    flags_error='DEFINE error: too few arguments'
-    flags_return=${FLAGS_ERROR}
-    _flags_error "${flags_error}"
-    return ${flags_return}
+    last_flags_error='DEFINE error: too few arguments'
+    last_flags_return=${FLAGS_ERROR}
+    _flags_error "${last_flags_error=}"
+    return ${last_flags_return}
   fi
 
   local _flags_type_=$1
@@ -181,15 +180,15 @@ function _flags_define {
   # check whether the flag name is reserved
   _flags_itemInList ${_flags_usName_} "${__FLAGS_RESERVED_LIST}"
   if [ $? -eq ${FLAGS_TRUE} ]; then
-    flags_error="flag name (${_flags_name_}) is reserved"
+    last_flags_error="flag name (${_flags_name_}) is reserved"
     _flags_return_=${FLAGS_ERROR}
   fi
 
   # check for existing long name definition
   if [ ${_flags_return_} -eq ${FLAGS_TRUE} ]; then
     if _flags_itemInList ${_flags_usName_} ${g__flags_defined_names}; then
-      flags_error="definition for ([no]${_flags_name_}) already exists"
-      _flags_warn "${flags_error}"
+      last_flags_error="definition for ([no]${_flags_name_}) already exists"
+      _flags_warn "${last_flags_error}"
       _flags_return_=${FLAGS_FALSE}
     fi
   fi
@@ -198,8 +197,8 @@ function _flags_define {
   if [[ ${_flags_return_} -eq ${FLAGS_TRUE} && "${_flags_short_}" != "${__FLAGS_NULL}" ]]
   then
     if _flags_itemInList "${_flags_short_}" ${g__flags_short_names}; then
-      flags_error="flag short name (${_flags_short_}) already defined"
-      _flags_warn "${flags_error}"
+      last_flags_error="flag short name (${_flags_short_}) already defined"
+      _flags_warn "${last_flags_error}"
       _flags_return_=${FLAGS_FALSE}
     fi
   fi
@@ -216,7 +215,7 @@ function _flags_define {
             false|f|1) _flags_default_=${FLAGS_FALSE} ;;
           esac
         else
-          flags_error="invalid default flag value '${_flags_default_}'"
+          last_flags_error="invalid default flag value '${_flags_default_}'"
           _flags_return_=${FLAGS_ERROR}
         fi
         ;;
@@ -225,7 +224,7 @@ function _flags_define {
         if _flags_validInt "${_flags_default_}"; then
           :
         else
-          flags_error="invalid default flag value '${_flags_default_}'"
+          last_flags_error="invalid default flag value '${_flags_default_}'"
           _flags_return_=${FLAGS_ERROR}
         fi
         ;;
@@ -233,7 +232,7 @@ function _flags_define {
       ${__FLAGS_TYPE_STRING}) ;;  # everything in shell is a valid string
 
       *)
-        flags_error="unrecognized flag type '${_flags_type_}'"
+        last_flags_error="unrecognized flag type '${_flags_type_}'"
         _flags_return_=${FLAGS_ERROR}
         ;;
     esac
@@ -261,12 +260,12 @@ function _flags_define {
     fi
   fi
 
-  flags_return=${_flags_return_}
-  if [[ ${flags_return} -eq ${FLAGS_ERROR} ]]; then
-    _flags_error "${flags_error}"
+  last_flags_return=${_flags_return_}
+  if [[ ${last_flags_return} -eq ${FLAGS_ERROR} ]]; then
+    _flags_error "${last_flags_error}"
   fi
 
-  return ${flags_return}
+  return ${last_flags_return}
 }
 
 # Return valid getopt options using currently defined list of long options.
@@ -337,7 +336,7 @@ function _flags_getFlagInfo {
   local _flags_infoValue_
   eval "_flags_infoValue_=\"\${${_flags_infoVar_}:-}\""
   if [ -n "${_flags_infoValue_}" ]; then
-    flags_return=${FLAGS_TRUE}
+    last_flags_return=${FLAGS_TRUE}
   else
     # see if the _flags_gFI_usName_ variable is a string as strings can be
     # empty...
@@ -351,18 +350,18 @@ function _flags_getFlagInfo {
     local _flags_typeValue_
     eval "_flags_typeValue_=\"\${${_flags_typeVar_}:-}\""
     if [ "${_flags_typeValue_}" = "${__FLAGS_TYPE_STRING}" ]; then
-      flags_return=${FLAGS_TRUE}
+      last_flags_return=${FLAGS_TRUE}
     else
-      flags_return=${FLAGS_ERROR}
-      flags_error="missing flag info variable (${_flags_infoVar_})"
+      last_flags_return=${FLAGS_ERROR}
+      last_flags_error="missing flag info variable (${_flags_infoVar_})"
     fi
   fi
 
   echo "${_flags_infoValue_}"
-  if [[ ${flags_return} -eq ${FLAGS_ERROR} ]]; then
-    _flags_error "${flags_error}"
+  if [[ ${last_flags_return} -eq ${FLAGS_ERROR} ]]; then
+    _flags_error "${last_flags_error}"
   fi
-  return ${flags_return}
+  return ${last_flags_return}
 }
 
 # Check for presense of item in a list.
@@ -381,12 +380,12 @@ function _flags_itemInList {
 
 
   if [[ " ${*:-} " =~ " ${_flags_str_} " ]]; then
-    flags_return=${FLAGS_TRUE}
+    last_flags_return=${FLAGS_TRUE}
   else
-    flags_return=${FLAGS_FALSE}
+    last_flags_return=${FLAGS_FALSE}
   fi
 
-  return ${flags_return}
+  return ${last_flags_return}
 }
 
 # Validate a boolean.
@@ -398,14 +397,14 @@ function _flags_itemInList {
 function _flags_validBool {
   local _flags_bool_=$1
 
-  flags_return=${FLAGS_TRUE}
+  last_flags_return=${FLAGS_TRUE}
   case "${_flags_bool_}" in
     true|t|0) ;;
     false|f|1) ;;
-    *) flags_return=${FLAGS_FALSE} ;;
+    *) last_flags_return=${FLAGS_FALSE} ;;
   esac
 
-  return ${flags_return}
+  return ${last_flags_return}
 }
 
 # Validate an integer.
@@ -415,9 +414,9 @@ function _flags_validBool {
 # Returns:
 #   bool: true if the value is a valid integer
 function _flags_validInt {
-  flags_return=${FLAGS_FALSE}
+  last_flags_return=${FLAGS_FALSE}
   if [ -z "${1:-}" ]; then
-    return ${flags_return}
+    return ${last_flags_return}
   fi
   local _flags_int_=$1
 
@@ -428,11 +427,11 @@ function _flags_validInt {
   esac
 
   case ${_flags_int_} in
-    *[!0-9]*) flags_return=${FLAGS_FALSE} ;;
-    *) flags_return=${FLAGS_TRUE} ;;
+    *[!0-9]*) last_flags_return=${FLAGS_FALSE} ;;
+    *) last_flags_return=${FLAGS_TRUE} ;;
   esac
 
-  return ${flags_return}
+  return ${last_flags_return}
 }
 
 # Parse command-line options using the enhanced getopt.
@@ -445,7 +444,7 @@ function _flags_validInt {
 # Returns:
 #   integer: a FLAGS success condition
 function _flags_getoptEnhanced {
-  flags_return=${FLAGS_TRUE}
+  last_flags_return=${FLAGS_TRUE}
   local _flags_shortOpts_="$(_flags_genOptStr ${__FLAGS_OPTSTR_SHORT})"
   local _flags_boolOpts_="$g__flags_bool_names# *}"
   _flags_boolOpts_="${g__flags_bool_names#"${g__flags_bool_names%%[![:space:]]*}"}"
@@ -460,11 +459,11 @@ function _flags_getoptEnhanced {
   local _flags_rtrn_=$?
   if [ ${_flags_rtrn_} -ne ${FLAGS_TRUE} ]; then
     _flags_warn "${g__flags_opts}"
-    flags_error='unable to parse provided options with getopt.'
-    flags_return=${FLAGS_ERROR}
+    last_flags_error='unable to parse provided options with getopt.'
+    last_flags_return=${FLAGS_ERROR}
   fi
 
-  return ${flags_return}
+  return ${last_flags_return}
 }
 
 # Dynamically parse a getopt result and set appropriate variables.
@@ -482,7 +481,7 @@ function _flags_parseGetopt {
   local _flags_argc_=$1
   shift
 
-  flags_return=${FLAGS_TRUE}
+  last_flags_return=${FLAGS_TRUE}
 
   # note the quotes around the $@ -- they are essential!
   eval set -- "$@"
@@ -531,8 +530,8 @@ function _flags_parseGetopt {
 
     # die if the flag was unrecognized
     if [ -z "${_flags_name_}" ]; then
-      flags_error="unrecognized option (${_flags_opt_})"
-      flags_return=${FLAGS_ERROR}
+      last_flags_error="unrecognized option (${_flags_opt_})"
+      last_flags_return=${FLAGS_ERROR}
       break
     fi
 
@@ -564,8 +563,8 @@ function _flags_parseGetopt {
         if _flags_validInt "${_flags_arg_}"; then
           eval "FLAGS_${_flags_usName_}='${_flags_arg_}'"
         else
-          flags_error="invalid integer value (${_flags_arg_})"
-          flags_return=${FLAGS_ERROR}
+          last_flags_error="invalid integer value (${_flags_arg_})"
+          last_flags_return=${FLAGS_ERROR}
           break
         fi
         ;;
@@ -593,30 +592,8 @@ function _flags_parseGetopt {
     shift
   done
 
-  return ${flags_return}
+  return ${last_flags_return}
 }
-
-# Cross-platform strlen() implementation.
-#
-# Args:
-#   _flags_str: string: to determine length of
-# Output:
-#   integer: length of string
-# Returns:
-#   bool: success of strlen evaluation
-function _flags_strlen {
-  local _flags_str_=${1:-}
-
-  if [ -z "${_flags_str_}" ]; then
-    flags_output=0
-  else
-    flags_output=${#_flags_str_}
-  fi
-  flags_return=$?
-
-  return ${flags_return}
-}
-
 
 #------------------------------------------------------------------------------
 # public functions
@@ -652,23 +629,23 @@ function FLAGS {
   # parse options
   if [ $# -gt 0 ]; then
     _flags_getoptEnhanced "$@"
-    flags_return=$?
+    last_flags_return=$?
   else
     # nothing passed; won't bother running getopt
     g__flags_opts='--'
-    flags_return=${FLAGS_TRUE}
+    last_flags_return=${FLAGS_TRUE}
   fi
 
-  if [ ${flags_return} -eq ${FLAGS_TRUE} ]; then
+  if [ ${last_flags_return} -eq ${FLAGS_TRUE} ]; then
     _flags_parseGetopt $# "${g__flags_opts}"
-    flags_return=$?
+    last_flags_return=$?
   fi
 
-  if [[ ${flags_return} -eq ${FLAGS_ERROR} ]]; then
+  if [[ ${last_flags_return} -eq ${FLAGS_ERROR} ]]; then
     _flags_fatal "${flags_error}"
   fi
 
-  return ${flags_return}
+  return ${last_flags_return}
 }
 
 # This is effectively a 'usage()' function. It prints usage information and
@@ -729,8 +706,6 @@ function flags_help {
       flags_defaultStr_="(default: ${flags_defaultStr_})"
 
       local flags_helpStr_="  ${flags_flagStr_}  ${flags_help_} ${flags_defaultStr_}"
-      _flags_strlen "${flags_helpStr_}"
-      local flags_helpStrLen_=${flags_output}
 
       echo "${flags_helpStr_}" >&2
     done

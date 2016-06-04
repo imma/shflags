@@ -642,7 +642,7 @@ function FLAGS {
     return ${g__last_flags_return}
   fi
 
-  if [[ "${#FLAGS_ARGV[@]}" -gt 0 ]]; then
+  if [[ -n "${FLAGS_ARGV:-}" ]]; then
     eval set -- "${FLAGS_ARGV[@]}"
   else
     set --

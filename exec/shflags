@@ -622,6 +622,8 @@ function DEFINE_string  { _flags_define ${__FLAGS_TYPE_STRING} "$@"; }
 function FLAGS {
   set -efu
 
+  export POSIXLY_CORRECT=1
+
   # parse options
   if [ $# -gt 0 ]; then
     _flags_getoptEnhanced "$@"

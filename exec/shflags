@@ -448,7 +448,7 @@ function _flags_getoptEnhanced {
   _flags_boolOpts_="${_flags_boolOpts_# }"
   _flags_boolOpts_="${_flags_boolOpts_// /,}"
 
-  g__flags_opts="$(${FLAGS_GETOPT_CMD} \
+  g__flags_opts="$(env POSIXLY_CORRECT=1 ${FLAGS_GETOPT_CMD} \
       -o "${_flags_shortOpts_}" \
       -l "${_flags_longOpts_}${_flags_boolOpts_:+,${_flags_boolOpts_:+}}" \
       -- "$@" 2>&1)"
@@ -621,8 +621,6 @@ function DEFINE_string  { _flags_define ${__FLAGS_TYPE_STRING} "$@"; }
 #   integer: success of operation, or error
 function FLAGS {
   set -efu
-
-  export POSIXLY_CORRECT=1
 
   # parse options
   if [ $# -gt 0 ]; then

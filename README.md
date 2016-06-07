@@ -1,2 +1,1 @@
-Fork of `kward/shflags` for bash specialization, make it faster, work
-with sub-commands and functions.
+Visit http://defn.sh/shflags/ or open `docs/index.html`

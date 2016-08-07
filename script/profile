@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-function profile {
+function _shflags_profile {
   local shome="${_shflags_home:-"$(cd -P -- "$(dirname -- "$BASH_SOURCE")/.." && pwd -P)"}"
   PATH="$shome/exec:$PATH"
 }
 
-profile
+_shflags_profile

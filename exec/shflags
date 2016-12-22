@@ -156,7 +156,7 @@ function _flags_fatal { echo "flags:FATAL $@" >&2; exit ${FLAGS_ERROR}; }
 # Returns:
 #   integer: success of operation, or error
 function _flags_define {
-  if [ $# -lt 4 ]; then
+  if [[ $# -lt 4 ]]; then
     g__last_flags_error='DEFINE error: too few arguments'
     g__last_flags_return=${FLAGS_ERROR}
     _flags_error "${g__last_flags_error=}"
@@ -173,8 +173,7 @@ function _flags_define {
   local _flags_usName_="${_flags_name_//-/_}"
 
   # check whether the flag name is reserved
-  _flags_itemInList ${_flags_usName_} "${__FLAGS_RESERVED_LIST}"
-  if [ $? -eq ${FLAGS_TRUE} ]; then
+  if _flags_itemInList ${_flags_usName_} "${__FLAGS_RESERVED_LIST}"; then
     g__last_flags_error="flag name (${_flags_name_}) is reserved"
     _flags_return_=${FLAGS_ERROR}
   fi
@@ -647,8 +646,6 @@ function FLAGS {
   else
     set --
   fi
-
-  main "$@"
 }
 
 # This is effectively a 'usage()' function. It prints usage information and

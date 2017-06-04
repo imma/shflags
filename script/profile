@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function _shflags_profile {
-  local shome="${_shflags_home:-"$(cd -P -- "$(dirname -- "$BASH_SOURCE")/.." && pwd -P)"}"
+  local shome="${_shflags_home:="$(cd -P -- "$(dirname -- "$BASH_SOURCE")/.." && pwd -P)"}"
   PATH="$shome/exec:$PATH"
 }
 
